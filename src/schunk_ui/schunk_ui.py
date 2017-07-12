@@ -69,21 +69,25 @@ class SchunkPlugin(Plugin):
         self._widget.button_init.clicked.connect(lambda: self.call_service("init"))
         self._widget.button_recover.clicked.connect(lambda: self.call_service("recover"))
         self._widget.button_stop.clicked.connect(lambda: self.call_service("stop"))
+        self._widget.button_engage.clicked.connect(lambda: self.call_service("engage"))
+        self._widget.button_disengage.clicked.connect(lambda: self.call_service("disengage"))
+        self._widget.button_estop.clicked.connect(lambda: self.call_service("emergency_stop"))
         # joint sliders
-        self._widget.proximal_slider.valueChanged.connect(lambda value: self.spinner_update(self._widget.proximal_spinbox, value, True))
-        self._widget.distal_slider.valueChanged.connect(lambda value: self.spinner_update(self._widget.distal_spinbox, value, True))
-        # joint spinners
-        self._widget.proximal_spinbox.valueChanged.connect(lambda value: self.slider_update(self._widget.proximal_slider, value, True))
-        self._widget.distal_spinbox.valueChanged.connect(lambda value: self.slider_update(self._widget.distal_slider, value, True))
+        self._widget.proximal_slider.valueChanged.connect(lambda value: self.on_slider_update(self._widget.proximal_spinbox, value, True))
+        self._widget.distal_slider.valueChanged.connect(lambda value: self.on_slider_update(self._widget.distal_spinbox, value, True))
 
-        # set sliders by default spinner box values
-        self.slider_update(self._widget.proximal_slider, self._widget.proximal_spinbox.value(), send_joints=False)
-        self.slider_update(self._widget.distal_slider, self._widget.distal_spinbox.value(), send_joints=False)
+        # set spinner boxes by default sliders values
+        self._widget.proximal_spinbox.setValue(self._widget.proximal_slider.value() / 1000.0)
+        self._widget.distal_spinbox.setValue(self._widget.distal_slider.value() / 1000.0)
 
     def call_service(self, name):
         service_name = '/gripper/sdh_controller/'+name
 
-        rospy.wait_for_service(service_name)
+        try:
+            rospy.wait_for_service(service_name, timeout=0.5)
+        except rospy.exceptions.ROSException:
+            rospy.logerr("service '"+str(name)+"' is not available")
+            return False
 
         service = rospy.ServiceProxy(service_name, Trigger)
         resp = service()
@@ -94,20 +98,9 @@ class SchunkPlugin(Plugin):
 
         return resp.success
 
-    def spinner_update(self, spinner, value, send_joints):
+    def on_slider_update(self, spinner, value, send_joints):
         # just set spinner value, do not forward signal back to slider
-        spinner.blockSignals(True)
         spinner.setValue(value/1000.0)
-        spinner.blockSignals(False)
-
-        if send_joints:
-            self.send_grasp_joint_positions()
-
-    def slider_update(self, slider, value, send_joints):
-        # just set slider value, do not forward signal back to spinner
-        slider.blockSignals(True)
-        slider.setValue(value * 1000)
-        slider.blockSignals(False)
 
         if send_joints:
             self.send_grasp_joint_positions()
