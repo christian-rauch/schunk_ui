@@ -6,12 +6,12 @@ from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
 from python_qt_binding.QtGui import QWidget
 
-class MyPlugin(Plugin):
+class SchunkPlugin(Plugin):
 
     def __init__(self, context):
-        super(MyPlugin, self).__init__(context)
+        super(SchunkPlugin, self).__init__(context)
         # Give QObjects reasonable names
-        self.setObjectName('MyPlugin')
+        self.setObjectName('SchunkPlugin')
 
         # Process standalone plugin command-line arguments
         from argparse import ArgumentParser
@@ -32,7 +32,7 @@ class MyPlugin(Plugin):
         # Extend the widget with all attributes and children from UI file
         loadUi(ui_file, self._widget)
         # Give QObjects reasonable names
-        self._widget.setObjectName('MyPluginUi')
+        self._widget.setObjectName('SchunkPluginUI')
         # Show _widget.windowTitle on left-top of each plugin (when 
         # it's set in _widget). This is useful when you open multiple 
         # plugins at once. Also if you open multiple instances of your 

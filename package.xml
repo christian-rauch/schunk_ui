@@ -2,7 +2,7 @@
 <package>
   <name>schunk_ui</name>
   <version>0.0.0</version>
-  <description>The schunk_ui package</description>
+  <description>Simple rqt user interface for Schunk SDH2</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -40,9 +40,6 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>rospy</build_depend>
-  <build_depend>rqt_gui</build_depend>
-  <build_depend>rqt_gui_py</build_depend>
   <run_depend>rospy</run_depend>
   <run_depend>rqt_gui</run_depend>
   <run_depend>rqt_gui_py</run_depend>

@@ -1,9 +1,12 @@
 <library path="src">
-  <class name="My Plugin" type="schunk_ui.my_module.MyPlugin" base_class_type="rqt_gui_py::Plugin">
+  <class name="Schunk SDH2 UI" type="schunk_ui.schunk_ui.SchunkPlugin" base_class_type="rqt_gui_py::Plugin">
     <description>
-      An example Python GUI plugin to create a great user interface.
+      Schunk SDH2 UI
     </description>
     <qtgui>
+      <group>
+        <label>KUKA</label>
+      </group>
       <!-- optional grouping...
       <group>
         <label>Group</label>
@@ -12,9 +15,9 @@
         <label>Subgroup</label>
       </group>
       -->
-      <label>My first Python Plugin</label>
+      <label>Schunk SDH2 UI</label>
       <icon type="theme">system-help</icon>
-      <statustip>Great user interface to provide real value.</statustip>
+      <statustip>Schunk SDH2 UI</statustip>
     </qtgui>
   </class>
 </library>
