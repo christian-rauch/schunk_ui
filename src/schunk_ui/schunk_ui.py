@@ -128,20 +128,18 @@ class SchunkPlugin(Plugin):
         trajectory_goal = FollowJointTrajectoryGoal()
 
         # add single single joint point to trajectory
+        trajectory_goal.trajectory.points.append(JointTrajectoryPoint())
         for jname in all_joints:
+            trajectory_goal.trajectory.joint_names.append(jname)
             # select joint position from set
-            trajpoint = JointTrajectoryPoint()
             if jname in static_joints:
-                trajpoint.positions.append(0)
+                trajectory_goal.trajectory.points[0].positions.append(0)
             elif jname in proximal_joints:
-                trajpoint.positions.append(proximal_jpos)
+                trajectory_goal.trajectory.points[0].positions.append(proximal_jpos)
             elif jname in distal_joints:
-                trajpoint.positions.append(distal_jpos)
+                trajectory_goal.trajectory.points[0].positions.append(distal_jpos)
             else:
                 raise Exception("joint not in set")
-
-            trajectory_goal.trajectory.joint_names.append(jname)
-            trajectory_goal.trajectory.points.append(trajpoint)
 
         # send trajectory and wait for response
         self.action_client.send_goal(trajectory_goal)
