@@ -22,20 +22,6 @@ import threading
 import time
 
 
-def on_slider_update(spinner, value):
-    # just set spinner value, do not forward signal back to slider
-    spinner.blockSignals(True)
-    spinner.setValue(value / 1000.0)
-    spinner.blockSignals(False)
-
-
-def on_spinner_update(slider, value):
-    # just set slider value, do not forward signal back to spinner
-    slider.blockSignals(True)
-    slider.setValue(value * 1000)
-    slider.blockSignals(False)
-
-
 class SchunkPlugin(Plugin):
     def __init__(self, context):
         super(SchunkPlugin, self).__init__(context)
@@ -90,24 +76,40 @@ class SchunkPlugin(Plugin):
         self._widget.button_estop.clicked.connect(lambda: self.call_service("emergency_stop"))
         # joint sliders
         self._widget.proximal_slider.valueChanged.connect(
-            lambda value: on_slider_update(self._widget.proximal_spinbox, value))
+            lambda value: self.on_slider_update(self._widget.proximal_spinbox, value))
         self._widget.distal_slider.valueChanged.connect(
-            lambda value: on_slider_update(self._widget.distal_spinbox, value))
+            lambda value: self.on_slider_update(self._widget.distal_spinbox, value))
         # joint spinners
         self._widget.proximal_spinbox.valueChanged.connect(
-            lambda value: on_spinner_update(self._widget.proximal_slider, value))
+            lambda value: self.on_spinner_update(self._widget.proximal_slider, value))
         self._widget.distal_spinbox.valueChanged.connect(
-            lambda value: on_spinner_update(self._widget.distal_slider, value))
+            lambda value: self.on_spinner_update(self._widget.distal_slider, value))
 
         # set spinner boxes by default sliders values
         self._widget.proximal_spinbox.setValue(self._widget.proximal_slider.value() / 1000.0)
         self._widget.distal_spinbox.setValue(self._widget.distal_slider.value() / 1000.0)
 
         self.is_initialised = False
+        self.has_new_data = False
 
         # start working thread
+        self.running = True
         self.thread = threading.Thread(target=self.loop, args=())
         self.thread.start()
+
+    def on_slider_update(self, spinner, value):
+        # just set spinner value, do not forward signal back to slider
+        spinner.blockSignals(True)
+        spinner.setValue(value / 1000.0)
+        spinner.blockSignals(False)
+        self.has_new_data = True
+
+    def on_spinner_update(self, slider, value):
+        # just set slider value, do not forward signal back to spinner
+        slider.blockSignals(True)
+        slider.setValue(value * 1000)
+        slider.blockSignals(False)
+        self.has_new_data = True
 
     def call_service(self, name):
         service_name = '/gripper/sdh_controller/' + name
@@ -128,13 +130,17 @@ class SchunkPlugin(Plugin):
         if name == "init":
             self.is_initialised = resp.success
 
+        if resp.success and (name in ["init", "engage"]):
+            self.has_new_data = True
+
         return resp.success
 
     def loop(self):
         self.running = True
         while self.running:
-            if self.is_initialised:
+            if self.is_initialised and self.has_new_data:
                 self.send_grasp_joint_positions()
+                self.has_new_data = False
             time.sleep(0.1)
 
     def send_grasp_joint_positions(self):
