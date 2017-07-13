@@ -18,6 +18,8 @@ from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryG
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 import math
+import thread
+import time
 
 
 class SchunkPlugin(Plugin):
@@ -73,12 +75,20 @@ class SchunkPlugin(Plugin):
         self._widget.button_disengage.clicked.connect(lambda: self.call_service("disengage"))
         self._widget.button_estop.clicked.connect(lambda: self.call_service("emergency_stop"))
         # joint sliders
-        self._widget.proximal_slider.valueChanged.connect(lambda value: self.on_slider_update(self._widget.proximal_spinbox, value, True))
-        self._widget.distal_slider.valueChanged.connect(lambda value: self.on_slider_update(self._widget.distal_spinbox, value, True))
+        self._widget.proximal_slider.valueChanged.connect(lambda value: self.on_slider_update(self._widget.proximal_spinbox, value))
+        self._widget.distal_slider.valueChanged.connect(lambda value: self.on_slider_update(self._widget.distal_spinbox, value))
+        # joint spinners
+        self._widget.proximal_spinbox.valueChanged.connect(lambda value: self.on_spinner_update(self._widget.proximal_slider, value))
+        self._widget.distal_spinbox.valueChanged.connect(lambda value: self.on_spinner_update(self._widget.distal_slider, value))
 
         # set spinner boxes by default sliders values
         self._widget.proximal_spinbox.setValue(self._widget.proximal_slider.value() / 1000.0)
         self._widget.distal_spinbox.setValue(self._widget.distal_slider.value() / 1000.0)
+
+        self.is_initialised = False
+
+        # start working thread
+        thread.start_new_thread(self.loop, ())
 
     def call_service(self, name):
         service_name = '/gripper/sdh_controller/'+name
@@ -96,14 +106,29 @@ class SchunkPlugin(Plugin):
         print("Response:")
         print(resp)
 
+        if name=="init":
+            self.is_initialised = resp.success
+
         return resp.success
 
-    def on_slider_update(self, spinner, value, send_joints):
+    def on_slider_update(self, spinner, value):
         # just set spinner value, do not forward signal back to slider
+        spinner.blockSignals(True)
         spinner.setValue(value/1000.0)
+        spinner.blockSignals(False)
 
-        if send_joints:
-            self.send_grasp_joint_positions()
+
+    def on_spinner_update(self, slider, value):
+        # just set slider value, do not forward signal back to spinner
+        slider.blockSignals(True)
+        slider.setValue(value * 1000)
+        slider.blockSignals(False)
+
+    def loop(self):
+        while True:
+            if self.is_initialised:
+                self.send_grasp_joint_positions()
+            time.sleep(0.1)
 
     def send_grasp_joint_positions(self):
         # values in range 0 ... 1
