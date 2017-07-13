@@ -18,12 +18,25 @@ from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryG
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 import math
-import thread
+import threading
 import time
 
 
-class SchunkPlugin(Plugin):
+def on_slider_update(spinner, value):
+    # just set spinner value, do not forward signal back to slider
+    spinner.blockSignals(True)
+    spinner.setValue(value / 1000.0)
+    spinner.blockSignals(False)
 
+
+def on_spinner_update(slider, value):
+    # just set slider value, do not forward signal back to spinner
+    slider.blockSignals(True)
+    slider.setValue(value * 1000)
+    slider.blockSignals(False)
+
+
+class SchunkPlugin(Plugin):
     def __init__(self, context):
         super(SchunkPlugin, self).__init__(context)
         # Give QObjects reasonable names
@@ -34,8 +47,8 @@ class SchunkPlugin(Plugin):
         parser = ArgumentParser()
         # Add argument(s) to the parser.
         parser.add_argument("-q", "--quiet", action="store_true",
-                      dest="quiet",
-                      help="Put plugin in silent mode")
+                            dest="quiet",
+                            help="Put plugin in silent mode")
         args, unknowns = parser.parse_known_args(context.argv())
         if not args.quiet:
             print('arguments: ', args)
@@ -59,14 +72,15 @@ class SchunkPlugin(Plugin):
         # Add widget to the user interface
         context.add_widget(self._widget)
 
-        #### connect to ROS
+        # Connect to ROS
         # action clients
-        self.action_client = actionlib.SimpleActionClient('/gripper/sdh_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
+        self.action_client = actionlib.SimpleActionClient('/gripper/sdh_controller/follow_joint_trajectory',
+                                                          FollowJointTrajectoryAction)
         rospy.loginfo("waiting for follow_joint_trajectory service...")
         self.action_client.wait_for_server()
         rospy.loginfo("connected to follow_joint_trajectory action")
 
-        #### connect to UI
+        # Connect to UI
         # service buttons
         self._widget.button_init.clicked.connect(lambda: self.call_service("init"))
         self._widget.button_recover.clicked.connect(lambda: self.call_service("recover"))
@@ -75,11 +89,15 @@ class SchunkPlugin(Plugin):
         self._widget.button_disengage.clicked.connect(lambda: self.call_service("disengage"))
         self._widget.button_estop.clicked.connect(lambda: self.call_service("emergency_stop"))
         # joint sliders
-        self._widget.proximal_slider.valueChanged.connect(lambda value: self.on_slider_update(self._widget.proximal_spinbox, value))
-        self._widget.distal_slider.valueChanged.connect(lambda value: self.on_slider_update(self._widget.distal_spinbox, value))
+        self._widget.proximal_slider.valueChanged.connect(
+            lambda value: on_slider_update(self._widget.proximal_spinbox, value))
+        self._widget.distal_slider.valueChanged.connect(
+            lambda value: on_slider_update(self._widget.distal_spinbox, value))
         # joint spinners
-        self._widget.proximal_spinbox.valueChanged.connect(lambda value: self.on_spinner_update(self._widget.proximal_slider, value))
-        self._widget.distal_spinbox.valueChanged.connect(lambda value: self.on_spinner_update(self._widget.distal_slider, value))
+        self._widget.proximal_spinbox.valueChanged.connect(
+            lambda value: on_spinner_update(self._widget.proximal_slider, value))
+        self._widget.distal_spinbox.valueChanged.connect(
+            lambda value: on_spinner_update(self._widget.distal_slider, value))
 
         # set spinner boxes by default sliders values
         self._widget.proximal_spinbox.setValue(self._widget.proximal_slider.value() / 1000.0)
@@ -88,15 +106,16 @@ class SchunkPlugin(Plugin):
         self.is_initialised = False
 
         # start working thread
-        thread.start_new_thread(self.loop, ())
+        self.thread = threading.Thread(target=self.loop, args=())
+        self.thread.start()
 
     def call_service(self, name):
-        service_name = '/gripper/sdh_controller/'+name
+        service_name = '/gripper/sdh_controller/' + name
 
         try:
             rospy.wait_for_service(service_name, timeout=0.5)
         except rospy.exceptions.ROSException:
-            rospy.logerr("service '"+str(name)+"' is not available")
+            rospy.logerr("service '" + str(name) + "' is not available")
             return False
 
         service = rospy.ServiceProxy(service_name, Trigger)
@@ -106,26 +125,14 @@ class SchunkPlugin(Plugin):
         print("Response:")
         print(resp)
 
-        if name=="init":
+        if name == "init":
             self.is_initialised = resp.success
 
         return resp.success
 
-    def on_slider_update(self, spinner, value):
-        # just set spinner value, do not forward signal back to slider
-        spinner.blockSignals(True)
-        spinner.setValue(value/1000.0)
-        spinner.blockSignals(False)
-
-
-    def on_spinner_update(self, slider, value):
-        # just set slider value, do not forward signal back to spinner
-        slider.blockSignals(True)
-        slider.setValue(value * 1000)
-        slider.blockSignals(False)
-
     def loop(self):
-        while True:
+        self.running = True
+        while self.running:
             if self.is_initialised:
                 self.send_grasp_joint_positions()
             time.sleep(0.1)
@@ -137,18 +144,18 @@ class SchunkPlugin(Plugin):
 
         # define sets of joints
         proximal_joints = ["sdh_thumb_2_joint", "sdh_finger_12_joint", "sdh_finger_22_joint"]
-        distal_joints   = ["sdh_thumb_3_joint", "sdh_finger_13_joint", "sdh_finger_23_joint"]
-        static_joints   = ["sdh_knuckle_joint"]
-        all_joints      = static_joints + proximal_joints + distal_joints
+        distal_joints = ["sdh_thumb_3_joint", "sdh_finger_13_joint", "sdh_finger_23_joint"]
+        static_joints = ["sdh_knuckle_joint"]
+        all_joints = static_joints + proximal_joints + distal_joints
 
         # map joint ranges from [0..1] to individual set ranges
         # proximal range: [-pi/2 .. 0]
         # distal range: [0 .. pi/2]
 
-        proximal_range  = [-math.pi/2.0, 0.0]
-        distal_range    = [0.0, math.pi/2.0]
-        proximal_jpos   = proximal_range[0] + proximal_value * (proximal_range[1]-proximal_range[0])
-        distal_jpos     = distal_range[0] + distal_value * (distal_range[1] - distal_range[0])
+        proximal_range = [-math.pi / 2.0, 0.0]
+        distal_range = [0.0, math.pi / 2.0]
+        proximal_jpos = proximal_range[0] + proximal_value * (proximal_range[1] - proximal_range[0])
+        distal_jpos = distal_range[0] + distal_value * (distal_range[1] - distal_range[0])
 
         trajectory_goal = FollowJointTrajectoryGoal()
 
@@ -176,6 +183,8 @@ class SchunkPlugin(Plugin):
     def shutdown_plugin(self):
         # TODO unregister all publishers here
         self.action_client.cancel_all_goals()
+        self.running = False
+        self.thread.join()
 
     def save_settings(self, plugin_settings, instance_settings):
         # TODO save intrinsic configuration, usually using:
@@ -187,7 +196,7 @@ class SchunkPlugin(Plugin):
         # v = instance_settings.value(k)
         pass
 
-    #def trigger_configuration(self):
+        # def trigger_configuration(self):
         # Comment in to signal that the plugin has a way to configure
         # This will enable a setting button (gear icon) in each dock widget title bar
         # Usually used to open a modal configuration dialog
