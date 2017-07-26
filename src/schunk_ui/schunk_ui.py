@@ -60,19 +60,12 @@ class SchunkPlugin(Plugin):
 
         # Connect to ROS
         # action clients
-        self.action_client = actionlib.SimpleActionClient('/gripper/sdh_controller/follow_joint_trajectory',
-                                                          FollowJointTrajectoryAction)
-        rospy.loginfo("waiting for follow_joint_trajectory service...")
-        self.action_client.wait_for_server()
-        rospy.loginfo("connected to follow_joint_trajectory action")
+        self.action_client = actionlib.SimpleActionClient('/gripper/sdh_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
 
         # Connect to UI
         # service buttons
         self._widget.button_init.clicked.connect(lambda: self.call_service("init"))
-        self._widget.button_recover.clicked.connect(lambda: self.call_service("recover"))
-        self._widget.button_stop.clicked.connect(lambda: self.call_service("stop"))
-        self._widget.button_engage.clicked.connect(lambda: self.call_service("engage"))
-        self._widget.button_disengage.clicked.connect(lambda: self.call_service("disengage"))
+        self._widget.button_disconnect.clicked.connect(lambda: self.call_service("disconnect"))
         self._widget.button_estop.clicked.connect(lambda: self.call_service("emergency_stop"))
         # joint sliders
         self._widget.proximal_slider.valueChanged.connect(
@@ -130,7 +123,7 @@ class SchunkPlugin(Plugin):
         if name == "init":
             self.is_initialised = resp.success
 
-        if resp.success and (name in ["init", "engage"]):
+        if resp.success and (name in ["init"]):
             self.has_new_data = True
 
         return resp.success
@@ -181,10 +174,13 @@ class SchunkPlugin(Plugin):
 
         # send trajectory and wait for response
         self.action_client.send_goal(trajectory_goal)
-        self.action_client.wait_for_result()
-        trajectory_result = self.action_client.get_result()
 
-        return trajectory_result.error_code == FollowJointTrajectoryResult.SUCCESSFUL
+        if self.action_client.wait_for_result(timeout=rospy.Duration(2.0)):
+            trajectory_result = self.action_client.get_result()
+            return trajectory_result.error_code == FollowJointTrajectoryResult.SUCCESSFUL
+        else:
+            rospy.logerr("timeout while waiting for response from grasp goal")
+            return False
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here

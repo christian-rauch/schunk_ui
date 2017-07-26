@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>300</height>
+    <height>307</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,27 +20,6 @@
       <string>Services</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_7">
-      <item row="1" column="0">
-       <widget class="QPushButton" name="button_engage">
-        <property name="text">
-         <string>ENGAGE</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="button_stop">
-        <property name="text">
-         <string>stop</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QPushButton" name="button_disengage">
-        <property name="text">
-         <string>DISENGAGE</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="0">
        <widget class="QPushButton" name="button_init">
         <property name="text">
@@ -49,13 +28,13 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QPushButton" name="button_recover">
+       <widget class="QPushButton" name="button_disconnect">
         <property name="text">
-         <string>recover</string>
+         <string>DISCONNECT</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
+      <item row="0" column="2">
        <widget class="QPushButton" name="button_estop">
         <property name="font">
          <font>
