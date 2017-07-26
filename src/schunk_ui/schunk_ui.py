@@ -122,6 +122,8 @@ class SchunkPlugin(Plugin):
 
         if name == "init":
             self.is_initialised = resp.success
+        elif name == "disconnect":
+            self.is_initialised = not resp.success
 
         if resp.success and (name in ["init"]):
             self.has_new_data = True
