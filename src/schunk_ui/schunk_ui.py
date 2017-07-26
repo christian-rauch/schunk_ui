@@ -16,6 +16,7 @@ import actionlib
 from std_srvs.srv import Trigger
 from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal, FollowJointTrajectoryResult
 from trajectory_msgs.msg import JointTrajectoryPoint
+from schunk_sdh.msg import TemperatureArray
 
 import math
 import threading
@@ -61,6 +62,9 @@ class SchunkPlugin(Plugin):
         # Connect to ROS
         # action clients
         self.action_client = actionlib.SimpleActionClient('/gripper/sdh_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
+
+        # subscribers
+        self.sub_temp = rospy.Subscriber("/gripper/sdh_controller/temperature", TemperatureArray, self.on_temp)
 
         # Connect to UI
         # service buttons
@@ -184,8 +188,20 @@ class SchunkPlugin(Plugin):
             rospy.logerr("timeout while waiting for response from grasp goal")
             return False
 
+    def on_temp(self, temps):
+        if self.is_initialised:
+            for temp in temps.temperature_list:
+                if temp.name == "root":
+                    self._widget.spin_root.setValue(temp.temperature)
+                elif temp.name == "controller":
+                    self._widget.spin_ctrl.setValue(temp.temperature)
+                elif temp.name == "pcb":
+                    self._widget.spin_pcb.setValue(temp.temperature)
+
     def shutdown_plugin(self):
         # TODO unregister all publishers here
+        self.sub_temp.unregister()
+
         self.action_client.cancel_all_goals()
         self.running = False
         self.thread.join()
