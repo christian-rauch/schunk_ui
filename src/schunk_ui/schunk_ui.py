@@ -86,6 +86,12 @@ class SchunkPlugin(Plugin):
         self._widget.proximal_spinbox.setValue(self._widget.proximal_slider.value() / 1000.0)
         self._widget.distal_spinbox.setValue(self._widget.distal_slider.value() / 1000.0)
 
+        # map temperature names to spinner boxes
+        self.tempspinners = dict()
+        self.tempspinners["root"]       = self._widget.spin_root
+        self.tempspinners["controller"] = self._widget.spin_ctrl
+        self.tempspinners["pcb"]        = self._widget.spin_pcb
+
         self.is_initialised = False
         self.has_new_data = False
 
@@ -188,15 +194,14 @@ class SchunkPlugin(Plugin):
             rospy.logerr("timeout while waiting for response from grasp goal")
             return False
 
-    def on_temp(self, temps):
+    def on_temp(self, temp_msg):
         if self.is_initialised:
-            for temp in temps.temperature_list:
-                if temp.name == "root":
-                    self._widget.spin_root.setValue(temp.temperature)
-                elif temp.name == "controller":
-                    self._widget.spin_ctrl.setValue(temp.temperature)
-                elif temp.name == "pcb":
-                    self._widget.spin_pcb.setValue(temp.temperature)
+            temps = dict(zip(temp_msg.name, temp_msg.temperature))
+            for name, spinner in self.tempspinners:
+                try:
+                    spinner.setValue(temps[name])
+                except KeyError:
+                    rospy.logerr("temperature",name,"is not provided by SDH driver node")
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
