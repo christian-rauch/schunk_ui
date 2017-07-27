@@ -197,7 +197,7 @@ class SchunkPlugin(Plugin):
     def on_temp(self, temp_msg):
         if self.is_initialised:
             temps = dict(zip(temp_msg.name, temp_msg.temperature))
-            for name, spinner in self.tempspinners:
+            for name, spinner in self.tempspinners.iteritems():
                 try:
                     spinner.setValue(temps[name])
                 except KeyError:
