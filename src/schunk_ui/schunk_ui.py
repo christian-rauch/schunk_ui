@@ -69,7 +69,7 @@ class SchunkPlugin(Plugin):
         # Connect to UI
         # service buttons
         self._widget.button_init.clicked.connect(lambda: self.call_service("init"))
-        self._widget.button_disconnect.clicked.connect(lambda: self.call_service("disconnect"))
+        self._widget.button_disconnect.clicked.connect(lambda: self.call_service("shutdown"))
         self._widget.button_estop.clicked.connect(lambda: self.call_service("emergency_stop"))
         # joint sliders
         self._widget.proximal_slider.valueChanged.connect(
@@ -132,7 +132,7 @@ class SchunkPlugin(Plugin):
 
         if name == "init":
             self.is_initialised = resp.success
-        elif name == "disconnect":
+        elif name == "shutdown":
             self.is_initialised = not resp.success
 
         if resp.success and (name in ["init"]):
