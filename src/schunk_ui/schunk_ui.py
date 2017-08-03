@@ -195,9 +195,10 @@ class SchunkPlugin(Plugin):
         # send trajectory and wait for response
         self.action_client.send_goal(trajectory_goal)
 
-        if self.action_client.wait_for_result(timeout=rospy.Duration(2.0)):
+        if self.action_client.wait_for_result(timeout=rospy.Duration(5.0)):
             trajectory_result = self.action_client.get_result()
-            self.status_message.setText("set joints to "+('%s' % trajectory_goal.trajectory.points[0].positions))
+            print("set joints to "+('%s' % trajectory_goal.trajectory.points[0].positions))
+            self.status_message.setText("set joints")
             return trajectory_result.error_code == FollowJointTrajectoryResult.SUCCESSFUL
         else:
             rospy.logerr("timeout while waiting for response from grasp goal")
