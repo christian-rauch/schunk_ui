@@ -99,6 +99,7 @@ class SchunkPlugin(Plugin):
         self.tempspinners["pcb"]        = self._widget.spin_pcb
 
         self.is_initialised = False
+        self.is_motor_on = False
         self.has_new_data = False
 
         # start working thread
@@ -142,6 +143,11 @@ class SchunkPlugin(Plugin):
             self.is_initialised = resp.success
         elif name == "shutdown":
             self.is_initialised = not resp.success
+            
+        if name == "motor_on":
+            self.is_motor_on = resp.success
+        elif name == "motor_off":
+            self.is_motor_on = not resp.success
 
         if resp.success and (name in ["init", "motor_on"]):
             self.has_new_data = True
@@ -151,7 +157,7 @@ class SchunkPlugin(Plugin):
     def loop(self):
         self.running = True
         while self.running:
-            if self.is_initialised and self.has_new_data:
+            if self.is_initialised and self.is_motor_on and self.has_new_data:
                 self.send_grasp_joint_positions()
                 self.has_new_data = False
             time.sleep(0.1)
