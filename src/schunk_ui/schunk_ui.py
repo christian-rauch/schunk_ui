@@ -71,6 +71,8 @@ class SchunkPlugin(Plugin):
         self._widget.button_init.clicked.connect(lambda: self.call_service("init"))
         self._widget.button_disconnect.clicked.connect(lambda: self.call_service("shutdown"))
         self._widget.button_estop.clicked.connect(lambda: self.call_service("emergency_stop"))
+        self._widget.button_motor_on.clicked.connect(lambda: self.call_service("motor_on"))
+        self._widget.button_motor_off.clicked.connect(lambda: self.call_service("motor_off"))
         # joint sliders
         self._widget.proximal_slider.valueChanged.connect(
             lambda value: self.on_slider_update(self._widget.proximal_spinbox, value))

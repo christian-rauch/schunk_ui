@@ -47,6 +47,20 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="0">
+       <widget class="QPushButton" name="button_motor_on">
+        <property name="text">
+         <string>Motor ON</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QPushButton" name="button_motor_off">
+        <property name="text">
+         <string>Motor OFF</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
