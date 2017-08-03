@@ -73,6 +73,10 @@ class SchunkPlugin(Plugin):
         self._widget.button_estop.clicked.connect(lambda: self.call_service("emergency_stop"))
         self._widget.button_motor_on.clicked.connect(lambda: self.call_service("motor_on"))
         self._widget.button_motor_off.clicked.connect(lambda: self.call_service("motor_off"))
+
+        # status text
+        self.status_message = self._widget.status_message
+
         # joint sliders
         self._widget.proximal_slider.valueChanged.connect(
             lambda value: self.on_slider_update(self._widget.proximal_spinbox, value))
@@ -123,6 +127,7 @@ class SchunkPlugin(Plugin):
             rospy.wait_for_service(service_name, timeout=0.5)
         except rospy.exceptions.ROSException:
             rospy.logerr("service '" + str(name) + "' is not available")
+            self.status_message.setText("service '" + str(name) + "' is not available")
             return False
 
         service = rospy.ServiceProxy(service_name, Trigger)
@@ -131,6 +136,7 @@ class SchunkPlugin(Plugin):
         print("Called service:", name)
         print("Response:")
         print(resp)
+        self.status_message.setText(resp.message)
 
         if name == "init":
             self.is_initialised = resp.success
@@ -191,9 +197,11 @@ class SchunkPlugin(Plugin):
 
         if self.action_client.wait_for_result(timeout=rospy.Duration(2.0)):
             trajectory_result = self.action_client.get_result()
+            self.status_message.setText("set joints to "+('%s' % trajectory_goal.trajectory.points[0].positions))
             return trajectory_result.error_code == FollowJointTrajectoryResult.SUCCESSFUL
         else:
             rospy.logerr("timeout while waiting for response from grasp goal")
+            self.status_message.setText("timeout while waiting for response from grasp goal")
             return False
 
     def on_temp(self, temp_msg):
