@@ -141,8 +141,10 @@ class SchunkPlugin(Plugin):
 
         if name == "init":
             self.is_initialised = resp.success
+            self.is_motor_on = resp.success
         elif name == "shutdown":
             self.is_initialised = not resp.success
+            self.is_motor_on = not resp.success
             
         if name == "motor_on":
             self.is_motor_on = resp.success
