@@ -73,6 +73,8 @@ class SchunkPlugin(Plugin):
         # 2^12 * 0.000473 / 592.1 = 0.0032720959297415976 (unit: N/(mm*mm) )
         self.max_pressure = 2**12 * 0.000473 / 592.1
 
+        self.max_pressure_readings = 0
+
         # Connect to UI
         # service buttons
         self._widget.button_init.clicked.connect(lambda: self.call_service("init"))
@@ -80,6 +82,8 @@ class SchunkPlugin(Plugin):
         self._widget.button_estop.clicked.connect(lambda: self.call_service("emergency_stop"))
         self._widget.button_motor_on.clicked.connect(lambda: self.call_service("motor_on"))
         self._widget.button_motor_off.clicked.connect(lambda: self.call_service("motor_off"))
+
+        self._widget.button_reset_max_pressure.clicked.connect(lambda : self.reset_max_pressure_readings())
 
         # status text
         self.status_message = self._widget.status_message
@@ -244,6 +248,13 @@ class SchunkPlugin(Plugin):
             # apply colour map to scaled values
             im = SchunkPlugin.jet(p / self.max_pressure)
 
+            getattr(self._widget, "lbl_"+m.sensor_name).setText(m.sensor_name+":")
+            getattr(self._widget, "max_"+m.sensor_name).setText("{:.9f}".format(np.max(p)))
+
+            if np.max(p) > self.max_pressure_readings:
+                self.max_pressure_readings = np.max(p)
+                self._widget.max_pressure.setText(str(self.max_pressure_readings))
+
             # label for tactile content
             lbl = getattr(self._widget, "tactile_"+m.sensor_name)
             qimg = QImage(im.data, im.shape[1], im.shape[0], 3*im.shape[1], QImage.Format_RGB888)
@@ -252,6 +263,10 @@ class SchunkPlugin(Plugin):
             qpix = QPixmap.fromImage(qimg).transformed(T)
             qpix = qpix.scaledToWidth(qpix.width()*20)
             lbl.setPixmap(qpix)
+
+    def reset_max_pressure_readings(self):
+        self.max_pressure_readings = 0
+        self._widget.max_pressure.setText(str(self.max_pressure_readings))
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
