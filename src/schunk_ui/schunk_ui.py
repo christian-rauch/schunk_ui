@@ -260,9 +260,12 @@ class SchunkPlugin(Plugin):
             qimg = QImage(im.data, im.shape[1], im.shape[0], 3*im.shape[1], QImage.Format_RGB888)
             T = QTransform()
             T.rotate(90)
-            qpix = QPixmap.fromImage(qimg).transformed(T)
-            qpix = qpix.scaledToWidth(qpix.width()*20)
-            lbl.setPixmap(qpix)
+            if self._widget.checkBox_show_img.isChecked():
+                qpix = QPixmap.fromImage(qimg).transformed(T)
+                qpix = qpix.scaledToWidth(qpix.width()*20)
+                lbl.setPixmap(qpix)
+            else:
+                lbl.setText("image placeholder")
 
     def reset_max_pressure_readings(self):
         self.max_pressure_readings = 0
